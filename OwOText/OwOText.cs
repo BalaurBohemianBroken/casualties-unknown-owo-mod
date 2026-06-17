@@ -8,20 +8,21 @@ using System.Reflection;
 using BepInEx.Logging;
 
 namespace OwOText {
-    [BepInPlugin("com.balaur.OwO", "OwOText", "0.1.0")]
+    [BepInPlugin("com.balaur.OwO", "OwOText", "0.1.1")]
     public class OwOText : BaseUnityPlugin {
         public static int seed = new Random().Next(1000);
         
         public static int stutter_die = 20;
         public static int sub_fullstop_die = 5;
         public static int punct_repeat_die = 3;
+        public static int chaos_die = 10;
         public static int tilde_die = 10;
         public static int face_die = 8;
         public static string[] faces =
             { ":<", ":>", "c:", ":c", "umu", ">//>", "x3", ">v>", "UvU", ":3", ":3c", ":P", ":p", "-w-", "=w=", ";w;", ">w>", "<w<", "<//<", "<v<" };
 
         // Not sure what the standard for logging from static is, but this'll do for now. 
-        public static ManualLogSource mod_logger;
+        // public static ManualLogSource mod_logger;
         
         private void Awake() {
             var l = Logger;
@@ -86,6 +87,9 @@ namespace OwOText {
                 
                 this_loop += Nya(input, i, c);
                 c = this_loop != "" ? this_loop[^1] : c;
+
+                this_loop += Chaos(c, rng);
+                c = this_loop != "" ? this_loop[^1] : c;
                 
                 this_loop += Tilde(c, rng);;
                 c = this_loop != "" ? this_loop[^1] : c;
@@ -142,27 +146,47 @@ namespace OwOText {
 
         private static string Nya(string source, int index, char character) {
             string new_string = "";
-            if (character != 'n' && character != 'N')
-                return "";
-            if (index == source.Length - 1)
+            if ("nmNM".IndexOf(character) != -1)
                 return "";
             // Next char must be vowel.
+            if (index == source.Length - 1)
+                return "";
             if ("aeiouAEIOU".IndexOf(source[index + 1]) == -1)
                 return "";
 
             char next_char = source[index + 1];
-            if (character == 'n')
-                new_string = "ny";
-            else if (character == 'N') {
+            if (Char.IsLower(character))
+                new_string = $"{character}y";
+            else {
                 if (Char.IsUpper(next_char)) {
-                    new_string = "NY";
+                    new_string = $"{character}Y";
                 }
                 else {
-                    new_string = "Ny";
+                    new_string = $"{character}y";
                 }
             }
 
             return new_string;
+        }
+
+        private static string Chaos(char character, Random rng) {
+            if ("ouOU".IndexOf(character) == -1)
+                return "";
+            if (rng.Next(chaos_die) != 0)
+                return "";
+
+            switch (character) {
+                case 'o':
+                    return "owo";
+                case 'u':
+                    return "uwu";
+                case 'O':
+                    return "OwO";
+                case 'U':
+                    return "UwU";
+            }
+
+            return "";
         }
 
         private static string Tilde(char character, Random rng) {
@@ -206,17 +230,19 @@ namespace OwOText {
             if (rng.Next(face_die) != 0) {
                 return "";
             }
+            string face = faces[rng.Next(faces.Length)];
+
+            // Start of sentence
+            if (index == 0) {
+                return $"{face} {character}";
+            }
             
             // Replace ,
-            string face = faces[rng.Next(faces.Length)];
             if (character == ',') {
                 return $" {face} ";
             }
             
             // Place after punctuation
-            if (index == 0) {
-                return "";
-            }
             char last_char = source[index - 1];
             if (character == ' ' && ".!?".IndexOf(last_char) != -1) {
                 return $" {face} ";
