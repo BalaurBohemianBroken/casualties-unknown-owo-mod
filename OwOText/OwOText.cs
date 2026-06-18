@@ -2,16 +2,12 @@
 using HarmonyLib;
 using System;
 using Random = System.Random;
-using TMPro;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using BepInEx.Logging;
-using OwOText;
 using UnityEngine;
 
 namespace OwOText {
-    [BepInPlugin("com.balaur.OwO", "OwOText", "0.1.4")]
+    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.0")]
     public class OwOText : BaseUnityPlugin {
         public static int seed = new Random().Next(1000);
 
@@ -26,8 +22,12 @@ namespace OwOText {
         public static double tilde_chance = 1.0/10;
         public static double face_chance = 1.0/8;
 
+        public static bool apply_everywhere = true;
         public static bool apply_dialogue = true;
-        public static bool apply_epda = true;
+        public static bool apply_written_text = true;
+        public static bool apply_tooltips = false;
+        public static bool apply_other = false;
+        public static bool apply_pause = true;
         public static string[] faces =
             { ":<", ":>", "c:", ":c", "umu", ">//>", "x3", ">v>", "UvU", ":3", ":3c", ":P", ":p", "-w-", "=w=", ";w;", ">w>", "<w<", "<//<", "<v<" };
 
@@ -41,6 +41,10 @@ namespace OwOText {
 
             MethodInfo? target;
             MethodInfo? patch;
+
+            target = typeof(Locale).GetMethod("GetString");
+            patch = typeof(OwOText).GetMethod("PostfixString");
+            DoPatch(harmony, target, postfix: patch);
             
             target = typeof(Talker).GetMethod("Talk", new Type[] { typeof(List<string>), typeof(Limb), typeof(bool), typeof(bool) });
             patch = typeof(OwOText).GetMethod("PrefixTalker");
@@ -48,6 +52,34 @@ namespace OwOText {
 
             target = typeof(Locale).GetMethod("GetPdaNote", new Type[] {typeof(int)});
             patch = typeof(OwOText).GetMethod("PostfixEpda");
+            DoPatch(harmony, target, postfix: patch);
+
+            target = typeof(Locale).GetMethod("GetNote");
+            patch = typeof(OwOText).GetMethod("PostfixNote");
+            DoPatch(harmony, target, postfix: patch);
+
+            target = typeof(Locale).GetMethod("GetItem");
+            patch = typeof(OwOText).GetMethod("PostfixTooltip");
+            DoPatch(harmony, target, postfix: patch);
+
+            target = typeof(Locale).GetMethod("GetBuilding");
+            patch = typeof(OwOText).GetMethod("PostfixTooltip");
+            DoPatch(harmony, target, postfix: patch);
+
+            target = typeof(Locale).GetMethod("GetMoodle");
+            patch = typeof(OwOText).GetMethod("PostfixTooltip");
+            DoPatch(harmony, target, postfix: patch);
+
+            target = typeof(Locale).GetMethod("GetOther");
+            patch = typeof(OwOText).GetMethod("PostfixOther");
+            DoPatch(harmony, target, postfix: patch);
+
+            target = typeof(Locale).GetMethod("GetTutorial");
+            patch = typeof(OwOText).GetMethod("PostfixOther");
+            DoPatch(harmony, target, postfix: patch);
+
+            target = typeof(Locale).GetMethod("GetPauseQuote");
+            patch = typeof(OwOText).GetMethod("PostfixPause");
             DoPatch(harmony, target, postfix: patch);
 
             target = typeof(Settings).GetMethod("DefaultSettings");
@@ -80,11 +112,23 @@ namespace OwOText {
         
         #region Patches
         public static void PostfixLoadLanguage() {
+            Locale.currentLang.other.Add("gamesetapplyowotoeverywhere", "Apply OwO to everywhere");
+            Locale.currentLang.other.Add("gamesetapplyowotoeverywheredsc", "Performs modifiers on nearly everything.");
+
             Locale.currentLang.other.Add("gamesetapplyowotodialogue", "Apply OwO to dialogue");
             Locale.currentLang.other.Add("gamesetapplyowotodialoguedsc", "Performs modifiers on any spoken dialogue.");
 
-            Locale.currentLang.other.Add("gamesetapplyowotoepda", "Apply OwO to EPDAs");
-            Locale.currentLang.other.Add("gamesetapplyowotoepdadsc", "Performs modifiers on EPDAs.");
+            Locale.currentLang.other.Add("gamesetapplyowototooltips", "Apply OwO to gameplay hover");
+            Locale.currentLang.other.Add("gamesetapplyowototooltipsdsc", "Performs modifiers on moodles, buildings and items. Doesn't apply to many other tooltips, they're affected by 'other'");
+
+            Locale.currentLang.other.Add("gamesetapplyowotoother", "Apply OwO to other");
+            Locale.currentLang.other.Add("gamesetapplyowotootherdsc", "Performs modifiers on a lot of things, like settings menus, the health panel, the tutorial.");
+
+            Locale.currentLang.other.Add("gamesetapplyowotopause", "Apply OwO to pause");
+            Locale.currentLang.other.Add("gamesetapplyowotopausedsc", "Performs modifiers on pause quotes.");
+
+            Locale.currentLang.other.Add("gamesetapplyowotowritten", "Apply OwO to written");
+            Locale.currentLang.other.Add("gamesetapplyowotowrittendsc", "Performs modifiers on EPDAs and notes.");
 
             Locale.currentLang.other.Add("gamesetstutterchance", "Stutter chance");
             Locale.currentLang.other.Add("gamesetstutterchancedsc", "Chance for the start of a word to s-s-sutter. Default 5%. L-Limited to 5 stutters to prevent infinite loops.");
@@ -115,6 +159,16 @@ namespace OwOText {
             List<Setting> my_settings = new List<Setting> {
                 new SettingBool
                 {
+                    name = "applyowotoeverywhere",
+                    value = false,
+                    apply = delegate
+                    {
+                        OwOText.apply_everywhere = GetSetting<SettingBool>("applyowotoeverywhere").value;
+                    },
+                    category = Setting.SettingCategory.Game
+                },
+                new SettingBool
+                {
                     name = "applyowotodialogue",
                     value = true,
                     apply = delegate
@@ -125,11 +179,41 @@ namespace OwOText {
                 },
                 new SettingBool
                 {
-                    name = "applyowotoepda",
+                    name = "applyowotowritten",
                     value = true,
                     apply = delegate
                     {
-                        OwOText.apply_epda = GetSetting<SettingBool>("applyowotoepda").value;
+                        OwOText.apply_written_text = GetSetting<SettingBool>("applyowotowritten").value;
+                    },
+                    category = Setting.SettingCategory.Game
+                },
+                new SettingBool
+                {
+                    name = "applyowototooltips",
+                    value = false,
+                    apply = delegate
+                    {
+                        OwOText.apply_tooltips = GetSetting<SettingBool>("applyowototooltips").value;
+                    },
+                    category = Setting.SettingCategory.Game
+                },
+                new SettingBool
+                {
+                    name = "applyowotoother",
+                    value = false,
+                    apply = delegate
+                    {
+                        OwOText.apply_other = GetSetting<SettingBool>("applyowotoother").value;
+                    },
+                    category = Setting.SettingCategory.Game
+                },
+                new SettingBool
+                {
+                    name = "applyowotopause",
+                    value = true,
+                    apply = delegate
+                    {
+                        OwOText.apply_pause = GetSetting<SettingBool>("applyowotopause").value;
                     },
                     category = Setting.SettingCategory.Game
                 },
@@ -226,8 +310,14 @@ namespace OwOText {
             __result.AddRange(my_settings);
         }
         
+        public static void PostfixString(ref string __result) {
+            if (!apply_everywhere)
+                return;
+            __result = MakeOwO(__result);
+        }
+        
         public static bool PrefixTalker(List<string> lines) {
-            if (!apply_dialogue)
+            if (!apply_dialogue || apply_everywhere)
                 return true;
             for (int i = 0; i < lines.Count; i++) {
                 lines[i] = MakeOwO(lines[i]);
@@ -236,9 +326,34 @@ namespace OwOText {
         }
         
         public static void PostfixEpda(ref (string text, string sprite) __result) {
-            if (!apply_epda)
+            if (!apply_written_text || apply_everywhere)
                 return;
             __result.text = MakeOwO(__result.text);
+        }
+        
+        public static void PostfixNote(ref (string text, string sprite, string font) __result) {
+            if (!apply_written_text || apply_everywhere)
+                return;
+            __result.text = MakeOwO(__result.text);
+        }
+        
+        public static void PostfixTooltip(ref string __result) {
+            if (!apply_tooltips || apply_everywhere)
+                return;
+            __result = MakeOwO(__result);
+        }
+        
+        public static void PostfixOther(ref string __result) {
+            if (!apply_other || apply_everywhere)
+                return;
+            __result = MakeOwO(__result);
+        }
+        
+        public static void PostfixPause(ref string __result) {
+            // Pause doesn't use GetString.
+            if (!apply_everywhere && !apply_pause)
+                return;
+            __result = MakeOwO(__result);
         }
         #endregion
 
