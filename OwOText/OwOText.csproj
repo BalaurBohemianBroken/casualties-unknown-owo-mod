@@ -16,6 +16,9 @@
       <Reference Include="BepInEx">
         <HintPath>..\..\..\..\..\..\..\home\will\.local\share\Steam\steamapps\common\Casualties Unknown Demo\BepInEx\core\BepInEx.dll</HintPath>
       </Reference>
+      <Reference Include="Unity.Mathematics">
+        <HintPath>..\..\..\..\..\..\..\home\will\.local\share\Steam\steamapps\common\Casualties Unknown Demo\CasualtiesUnknown_Data\Managed\Unity.Mathematics.dll</HintPath>
+      </Reference>
       <Reference Include="Unity.TextMeshPro">
         <HintPath>..\..\..\..\..\..\..\home\will\.local\share\Steam\steamapps\common\Casualties Unknown Demo\CasualtiesUnknown_Data\Managed\Unity.TextMeshPro.dll</HintPath>
       </Reference>
