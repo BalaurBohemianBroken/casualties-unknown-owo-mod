@@ -7,7 +7,7 @@ using System.Reflection;
 using UnityEngine;
 
 namespace OwOText {
-    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.1")]
+    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.2")]
     public class OwOText : BaseUnityPlugin {
         public static int seed = new Random().Next(1000);
 
@@ -30,9 +30,6 @@ namespace OwOText {
         public static bool apply_pause = false;
         public static string[] faces =
             { ":<", ":>", "c:", ":c", "umu", ">//>", "x3", ">v>", "UvU", ":3", ":3c", ":P", ":p", "-w-", "=w=", ";w;", ">w>", "<w<", "<//<", "<v<" };
-
-        // Not sure what the standard for logging from static is, but this'll do for now. 
-        // public static ManualLogSource mod_logger;
         
         private void Awake() {
             var l = Logger;
@@ -143,7 +140,7 @@ namespace OwOText {
             Locale.currentLang.other.Add("gamesetchaoschancedsc", "Chance for o to be replaced with owo, and u with uwu. Default 3%.");
             
             Locale.currentLang.other.Add("gamesettildechance", "Tilde chance");
-            Locale.currentLang.other.Add("gamesettildechancedsc", "Chance to replace . with ~, or to place ~ after ! or ?. Default 10%~");
+            Locale.currentLang.other.Add("gamesettildechancedsc", "Chance to replace . with ~, or to place ~ at the end of sentences. Default 10%~");
             
             Locale.currentLang.other.Add("gamesetfacechance", "Emote chance");
             Locale.currentLang.other.Add("gamesetfacechancedsc", ":3 Chance to add emoticons to the start or end of sentences, or replace commas. Default 5%. -w-");
@@ -379,7 +376,7 @@ namespace OwOText {
                 this_loop += Chaos(c, rng);
                 c = this_loop != "" ? this_loop[^1] : c;
                 
-                this_loop += Tilde(c, rng);
+                this_loop += Tilde(input, i, c, rng);
                 c = this_loop != "" ? this_loop[^1] : c;
                 
                 this_loop += Excitement(c, rng);
@@ -488,15 +485,16 @@ namespace OwOText {
             return "";
         }
 
-        private static string Tilde(char character, Random rng) {
-            if (".!?".IndexOf(character) == -1 || !(tilde_chance > RandomFloat(rng))) {
+        private static string Tilde(string source, int index, char character, Random rng) {
+            if ((index != source.Length - 1 && ".!?".IndexOf(character) == -1) || !(tilde_chance > RandomFloat(rng))) {
                 return "";
             }
-            
+
             // Replace
             if (character == '.') {
                 return "~";
             }
+            
             // Suffix
             // This can cause unintended repetition behaviour when combined with the Excitement modifier,
             // but that's fine. no one will notice.
