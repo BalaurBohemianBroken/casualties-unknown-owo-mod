@@ -11,7 +11,7 @@ using OwOText;
 using UnityEngine;
 
 namespace OwOText {
-    [BepInPlugin("com.balaur.OwO", "OwOText", "0.1.3")]
+    [BepInPlugin("com.balaur.OwO", "OwOText", "0.1.4")]
     public class OwOText : BaseUnityPlugin {
         public static int seed = new Random().Next(1000);
 
@@ -25,6 +25,9 @@ namespace OwOText {
         public static double chaos_chance = 1.0/10;
         public static double tilde_chance = 1.0/10;
         public static double face_chance = 1.0/8;
+
+        public static bool apply_dialogue = true;
+        public static bool apply_epda = true;
         public static string[] faces =
             { ":<", ":>", "c:", ":c", "umu", ">//>", "x3", ">v>", "UvU", ":3", ":3c", ":P", ":p", "-w-", "=w=", ";w;", ">w>", "<w<", "<//<", "<v<" };
 
@@ -42,6 +45,10 @@ namespace OwOText {
             target = typeof(Talker).GetMethod("Talk", new Type[] { typeof(List<string>), typeof(Limb), typeof(bool), typeof(bool) });
             patch = typeof(OwOText).GetMethod("PrefixTalker");
             DoPatch(harmony, target, prefix: patch);
+
+            target = typeof(Locale).GetMethod("GetPdaNote", new Type[] {typeof(int)});
+            patch = typeof(OwOText).GetMethod("PostfixEpda");
+            DoPatch(harmony, target, postfix: patch);
 
             target = typeof(Settings).GetMethod("DefaultSettings");
             patch = typeof(OwOText).GetMethod("PostfixDefaultSettings");
@@ -72,11 +79,16 @@ namespace OwOText {
         }
         
         #region Patches
-
         public static void PostfixLoadLanguage() {
+            Locale.currentLang.other.Add("gamesetapplyowotodialogue", "Apply OwO to dialogue");
+            Locale.currentLang.other.Add("gamesetapplyowotodialoguedsc", "Performs modifiers on any spoken dialogue.");
+
+            Locale.currentLang.other.Add("gamesetapplyowotoepda", "Apply OwO to EPDAs");
+            Locale.currentLang.other.Add("gamesetapplyowotoepdadsc", "Performs modifiers on EPDAs.");
+
             Locale.currentLang.other.Add("gamesetstutterchance", "Stutter chance");
             Locale.currentLang.other.Add("gamesetstutterchancedsc", "Chance for the start of a word to s-s-sutter. Default 5%. L-Limited to 5 stutters to prevent infinite loops.");
-            
+
             Locale.currentLang.other.Add("gamesetsubfullstopchance", "Substitute full stop chance");
             Locale.currentLang.other.Add("gamesetsubfullstopchancedsc", "Chance for a full stop to become an exclamation mark! Default 10%!");
             
@@ -101,6 +113,26 @@ namespace OwOText {
         
         public static void PostfixDefaultSettings(List<Setting> __result) {
             List<Setting> my_settings = new List<Setting> {
+                new SettingBool
+                {
+                    name = "applyowotodialogue",
+                    value = true,
+                    apply = delegate
+                    {
+                        OwOText.apply_dialogue = GetSetting<SettingBool>("applyowotodialogue").value;
+                    },
+                    category = Setting.SettingCategory.Game
+                },
+                new SettingBool
+                {
+                    name = "applyowotoepda",
+                    value = true,
+                    apply = delegate
+                    {
+                        OwOText.apply_epda = GetSetting<SettingBool>("applyowotoepda").value;
+                    },
+                    category = Setting.SettingCategory.Game
+                },
                 new SettingFloat {
                     name = "lispchance",
                     value = 1f,
@@ -195,10 +227,18 @@ namespace OwOText {
         }
         
         public static bool PrefixTalker(List<string> lines) {
+            if (!apply_dialogue)
+                return true;
             for (int i = 0; i < lines.Count; i++) {
                 lines[i] = MakeOwO(lines[i]);
             }
             return true;
+        }
+        
+        public static void PostfixEpda(ref (string text, string sprite) __result) {
+            if (!apply_epda)
+                return;
+            __result.text = MakeOwO(__result.text);
         }
         #endregion
 
