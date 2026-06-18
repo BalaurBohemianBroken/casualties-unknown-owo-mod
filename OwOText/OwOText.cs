@@ -7,27 +7,27 @@ using System.Reflection;
 using UnityEngine;
 
 namespace OwOText {
-    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.0")]
+    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.1")]
     public class OwOText : BaseUnityPlugin {
         public static int seed = new Random().Next(1000);
 
-        public static float lisp_chance = 1f;
-        public static float nya_chance = 1f/4;
-        public static double stutter_chance = 1.0/20;
-        public static int stutter_repeat_limit = 5;
-        public static double sub_fullstop_chance = 1.0/5;
-        public static double punct_repeat_chance = 1.0/3;
-        public static int punct_repeat_limit = 5;
-        public static double chaos_chance = 1.0/10;
-        public static double tilde_chance = 1.0/10;
-        public static double face_chance = 1.0/8;
+        public static float lisp_chance;
+        public static float nya_chance;
+        public static double stutter_chance;
+        public static int stutter_repeat_limit;
+        public static double sub_fullstop_chance;
+        public static double punct_repeat_chance;
+        public static int punct_repeat_limit;
+        public static double chaos_chance;
+        public static double tilde_chance;
+        public static double face_chance;
 
-        public static bool apply_everywhere = true;
-        public static bool apply_dialogue = true;
-        public static bool apply_written_text = true;
+        public static bool apply_everywhere = false;
+        public static bool apply_dialogue = false;
+        public static bool apply_written_text = false;
         public static bool apply_tooltips = false;
         public static bool apply_other = false;
-        public static bool apply_pause = true;
+        public static bool apply_pause = false;
         public static string[] faces =
             { ":<", ":>", "c:", ":c", "umu", ">//>", "x3", ">v>", "UvU", ":3", ":3c", ":P", ":p", "-w-", "=w=", ";w;", ">w>", "<w<", "<//<", "<v<" };
 
@@ -113,7 +113,7 @@ namespace OwOText {
         #region Patches
         public static void PostfixLoadLanguage() {
             Locale.currentLang.other.Add("gamesetapplyowotoeverywhere", "Apply OwO to everywhere");
-            Locale.currentLang.other.Add("gamesetapplyowotoeverywheredsc", "Performs modifiers on nearly everything.");
+            Locale.currentLang.other.Add("gamesetapplyowotoeverywheredsc", "Performs modifiers on nearly everything. This will break some coloured text.");
 
             Locale.currentLang.other.Add("gamesetapplyowotodialogue", "Apply OwO to dialogue");
             Locale.currentLang.other.Add("gamesetapplyowotodialoguedsc", "Performs modifiers on any spoken dialogue.");
