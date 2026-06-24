@@ -7,7 +7,7 @@ using System.Reflection;
 using UnityEngine;
 
 namespace OwOText {
-    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.3")]
+    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.4")]
     public class OwOText : BaseUnityPlugin {
         public static int seed = new Random().Next(1000);
 
@@ -22,6 +22,7 @@ namespace OwOText {
         public static float chaos_chance;
         public static float tilde_chance;
         public static float face_chance;
+        public static float trail_off_chance;
 
         public static bool apply_everywhere = false;
         public static bool apply_dialogue = false;
@@ -145,6 +146,9 @@ namespace OwOText {
             
             Locale.currentLang.other.Add("gamesetlispchance", "Lisp chance");
             Locale.currentLang.other.Add("gamesetlispchancedsc", "How wikewy it is fow l and r to be weplaced with w. Default 100%.");
+            
+            Locale.currentLang.other.Add("gamesettrail_off_chance", "Trail off chance");
+            Locale.currentLang.other.Add("gamesettrail_off_chancedsc", "The chance for dialogue... to trail off arbitrarily... default 5%.");
             
             Locale.currentLang.other.Add("gamesetnyachance", "Nya chance");
             Locale.currentLang.other.Add("gamesetnyachancedsc", "Chance for n+vowel or m+vowel to become nya, mya, Mye, NYE, etc. Default 15%");
@@ -290,6 +294,17 @@ namespace OwOText {
                     category = Setting.SettingCategory.Game
                 },
                 new SettingFloat {
+                    name = "trail_off_chance",
+                    value = 0.05f,
+                    max = 1f,
+                    min = 0f,
+                    apply = delegate {
+                        OwOText.trail_off_chance = Settings.Get<SettingFloat>("trail_off_chance").value;
+                    },
+                    formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
+                    category = Setting.SettingCategory.Game
+                },
+                new SettingFloat {
                     name = "punctrepeatchance",
                     value = 1f / 3,
                     max = 1f,
@@ -392,6 +407,9 @@ namespace OwOText {
                 c = this_loop != "" ? this_loop[^1] : c;
                 
                 this_loop += Faces(input, i, c, rng);
+                c = this_loop != "" ? this_loop[^1] : c;
+                
+                this_loop += TrailOff(c, rng);
                 c = this_loop != "" ? this_loop[^1] : c;
 
                 if (this_loop == "")
@@ -561,6 +579,14 @@ namespace OwOText {
             }
             
             return "";
+        }
+
+        private static string TrailOff(char character, Random rng) {
+            if (character != ' ')
+                return "";
+            if (RandomFloat(rng) > trail_off_chance)
+                return "";
+            return "... ";
         }
         #endregion
     }
