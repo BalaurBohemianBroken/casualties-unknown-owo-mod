@@ -7,7 +7,7 @@ using System.Reflection;
 using UnityEngine;
 
 namespace OwOText {
-    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.2")]
+    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.3")]
     public class OwOText : BaseUnityPlugin {
         public static int seed = new Random().Next(1000);
 
