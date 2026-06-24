@@ -13,14 +13,15 @@ namespace OwOText {
 
         public static float lisp_chance;
         public static float nya_chance;
-        public static double stutter_chance;
-        public static int stutter_repeat_limit;
-        public static double sub_fullstop_chance;
-        public static double punct_repeat_chance;
-        public static int punct_repeat_limit;
-        public static double chaos_chance;
-        public static double tilde_chance;
-        public static double face_chance;
+        public static float first_stutter_chance;
+        public static float stutter_repeat_chance;
+        public static int stutter_repeat_limit = 5;
+        public static float sub_fullstop_chance;
+        public static float punct_repeat_chance;
+        public static int punct_repeat_limit = 5;
+        public static float chaos_chance;
+        public static float tilde_chance;
+        public static float face_chance;
 
         public static bool apply_everywhere = false;
         public static bool apply_dialogue = false;
@@ -100,12 +101,6 @@ namespace OwOText {
         private static float RandomFloat(Random rng) {
             return (float)rng.NextDouble();
         }
-
-        // I could do reflection stuff to get the game's GetSetting function and all that stuff.
-        // But this is just way faster. Taken from decomp.
-        private static T GetSetting<T>(string name) where T : Setting {
-            return Settings.settings.Find((Setting s) => s.name == name) as T;
-        }
         
         #region Patches
         public static void PostfixLoadLanguage() {
@@ -127,8 +122,11 @@ namespace OwOText {
             Locale.currentLang.other.Add("gamesetapplyowotowritten", "Apply OwO to written");
             Locale.currentLang.other.Add("gamesetapplyowotowrittendsc", "Performs modifiers on EPDAs and notes.");
 
-            Locale.currentLang.other.Add("gamesetstutterchance", "Stutter chance");
-            Locale.currentLang.other.Add("gamesetstutterchancedsc", "Chance for the start of a word to s-s-sutter. Default 5%. L-Limited to 5 stutters to prevent infinite loops.");
+            Locale.currentLang.other.Add("gamesetstutterchance", "Stutter begin chance");
+            Locale.currentLang.other.Add("gamesetstutterchancedsc", "Chance for a s-stutter to begin on a word. Default 15%.");
+
+            Locale.currentLang.other.Add("gamesetstutter_repeat_chance", "Stutter repeat chance");
+            Locale.currentLang.other.Add("gamesetstutter_repeat_chancedsc", "Chance for stutter to r-r-repeat on a w-w-word once it begins. L-Limited to 5 stutters to prevent infinite loops. Default 20%");
 
             Locale.currentLang.other.Add("gamesetsubfullstopchance", "Substitute full stop chance");
             Locale.currentLang.other.Add("gamesetsubfullstopchancedsc", "Chance for a full stop to become an exclamation mark! Default 10%!");
@@ -160,7 +158,7 @@ namespace OwOText {
                     value = false,
                     apply = delegate
                     {
-                        OwOText.apply_everywhere = GetSetting<SettingBool>("applyowotoeverywhere").value;
+                        OwOText.apply_everywhere = Settings.Get<SettingBool>("applyowotoeverywhere").value;
                     },
                     category = Setting.SettingCategory.Game
                 },
@@ -170,7 +168,7 @@ namespace OwOText {
                     value = true,
                     apply = delegate
                     {
-                        OwOText.apply_dialogue = GetSetting<SettingBool>("applyowotodialogue").value;
+                        OwOText.apply_dialogue = Settings.Get<SettingBool>("applyowotodialogue").value;
                     },
                     category = Setting.SettingCategory.Game
                 },
@@ -180,7 +178,7 @@ namespace OwOText {
                     value = true,
                     apply = delegate
                     {
-                        OwOText.apply_written_text = GetSetting<SettingBool>("applyowotowritten").value;
+                        OwOText.apply_written_text = Settings.Get<SettingBool>("applyowotowritten").value;
                     },
                     category = Setting.SettingCategory.Game
                 },
@@ -190,7 +188,7 @@ namespace OwOText {
                     value = false,
                     apply = delegate
                     {
-                        OwOText.apply_tooltips = GetSetting<SettingBool>("applyowototooltips").value;
+                        OwOText.apply_tooltips = Settings.Get<SettingBool>("applyowototooltips").value;
                     },
                     category = Setting.SettingCategory.Game
                 },
@@ -200,7 +198,7 @@ namespace OwOText {
                     value = false,
                     apply = delegate
                     {
-                        OwOText.apply_other = GetSetting<SettingBool>("applyowotoother").value;
+                        OwOText.apply_other = Settings.Get<SettingBool>("applyowotoother").value;
                     },
                     category = Setting.SettingCategory.Game
                 },
@@ -210,7 +208,7 @@ namespace OwOText {
                     value = true,
                     apply = delegate
                     {
-                        OwOText.apply_pause = GetSetting<SettingBool>("applyowotopause").value;
+                        OwOText.apply_pause = Settings.Get<SettingBool>("applyowotopause").value;
                     },
                     category = Setting.SettingCategory.Game
                 },
@@ -220,18 +218,29 @@ namespace OwOText {
                     max = 1f,
                     min = 0f,
                     apply = delegate {
-                        OwOText.lisp_chance = GetSetting<SettingFloat>("lispchance").value;
+                        OwOText.lisp_chance = Settings.Get<SettingFloat>("lispchance").value;
                     },
                     formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
                     category = Setting.SettingCategory.Game
                 },
                 new SettingFloat {
                     name = "stutterchance",
-                    value = 1f / 20,
+                    value = 0.15f,
                     max = 1f,
                     min = 0f,
                     apply = delegate {
-                        OwOText.stutter_chance = GetSetting<SettingFloat>("stutterchance").value;
+                        OwOText.first_stutter_chance = Settings.Get<SettingFloat>("stutterchance").value;
+                    },
+                    formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
+                    category = Setting.SettingCategory.Game
+                },
+                new SettingFloat {
+                    name = "stutter_repeat_chance",
+                    value = 0.20f,
+                    max = 1f,
+                    min = 0f,
+                    apply = delegate {
+                        OwOText.stutter_repeat_chance = Settings.Get<SettingFloat>("stutter_repeat_chance").value;
                     },
                     formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
                     category = Setting.SettingCategory.Game
@@ -242,7 +251,7 @@ namespace OwOText {
                     max = 1f,
                     min = 0f,
                     apply = delegate {
-                        OwOText.tilde_chance = GetSetting<SettingFloat>("tildechance").value;
+                        OwOText.tilde_chance = Settings.Get<SettingFloat>("tildechance").value;
                     },
                     formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
                     category = Setting.SettingCategory.Game
@@ -253,7 +262,7 @@ namespace OwOText {
                     max = 1f,
                     min = 0f,
                     apply = delegate {
-                        OwOText.face_chance = GetSetting<SettingFloat>("facechance").value;
+                        OwOText.face_chance = Settings.Get<SettingFloat>("facechance").value;
                     },
                     formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
                     category = Setting.SettingCategory.Game
@@ -264,7 +273,7 @@ namespace OwOText {
                     max = 1f,
                     min = 0f,
                     apply = delegate {
-                        OwOText.nya_chance = GetSetting<SettingFloat>("nyachance").value;
+                        OwOText.nya_chance = Settings.Get<SettingFloat>("nyachance").value;
                     },
                     formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
                     category = Setting.SettingCategory.Game
@@ -275,7 +284,7 @@ namespace OwOText {
                     max = 1f,
                     min = 0f,
                     apply = delegate {
-                        OwOText.chaos_chance = GetSetting<SettingFloat>("chaoschance").value;
+                        OwOText.chaos_chance = Settings.Get<SettingFloat>("chaoschance").value;
                     },
                     formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
                     category = Setting.SettingCategory.Game
@@ -286,7 +295,7 @@ namespace OwOText {
                     max = 1f,
                     min = 0f,
                     apply = delegate {
-                        OwOText.punct_repeat_chance = GetSetting<SettingFloat>("punctrepeatchance").value;
+                        OwOText.punct_repeat_chance = Settings.Get<SettingFloat>("punctrepeatchance").value;
                     },
                     formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
                     category = Setting.SettingCategory.Game
@@ -297,7 +306,7 @@ namespace OwOText {
                     max = 1f,
                     min = 0f,
                     apply = delegate {
-                        OwOText.sub_fullstop_chance = GetSetting<SettingFloat>("subfullstopchance").value;
+                        OwOText.sub_fullstop_chance = Settings.Get<SettingFloat>("subfullstopchance").value;
                     },
                     formatValue = (float v) => Mathf.RoundToInt(v * 100f) + "%",
                     category = Setting.SettingCategory.Game
@@ -367,7 +376,7 @@ namespace OwOText {
                 this_loop += Lisp(c, rng);
                 c = this_loop != "" ? this_loop[^1] : c;
                 
-                this_loop += Stutter(input, i, c, rng);
+                this_loop += Stutter(input, i, c, rng, this_loop);
                 c = this_loop != "" ? this_loop[^1] : c;
                 
                 this_loop += Nya(input, i, c, rng);
@@ -379,7 +388,7 @@ namespace OwOText {
                 this_loop += Tilde(input, i, c, rng);
                 c = this_loop != "" ? this_loop[^1] : c;
                 
-                this_loop += Excitement(c, rng);
+                this_loop += Excitement(c, rng, this_loop);
                 c = this_loop != "" ? this_loop[^1] : c;
                 
                 this_loop += Faces(input, i, c, rng);
@@ -413,7 +422,7 @@ namespace OwOText {
             return "";
         }
 
-        private static string Stutter(string source, int index, char character, Random rng) {
+        private static string Stutter(string source, int index, char character, Random rng, string current_text) {
             // Only on the start of words.
             if (index != 0 && source[index - 1] != ' ') {
                 return "";
@@ -424,10 +433,14 @@ namespace OwOText {
             string new_string = "";
             bool first = true;
             int stutters = 0;
-            while (RandomFloat(rng) < stutter_chance && stutters < stutter_repeat_limit) {
+            float _stutter_chance = first_stutter_chance;
+            while (RandomFloat(rng) < _stutter_chance && stutters < stutter_repeat_limit) {
                 if (first) {
-                    new_string = character.ToString();
                     first = false;
+                    _stutter_chance = stutter_repeat_chance;
+                    // Place initial character if doesn't exists.
+                    if (current_text == "")
+                        new_string = character.ToString();
                 }
                 new_string += $"-{character}";
                 stutters++;
@@ -501,7 +514,7 @@ namespace OwOText {
             return $"{character}~";
         }
         
-        private static string Excitement(char character, Random rng) {
+        private static string Excitement(char character, Random rng, string current_text) {
             if (".!?".IndexOf(character) == -1)
                 return "";
 
@@ -515,7 +528,7 @@ namespace OwOText {
 
             int repeats = 0;
             while (punct_repeat_chance > RandomFloat(rng) && repeats < punct_repeat_limit) {
-                if (new_string == "") {
+                if (current_text == "") {
                     new_string = character.ToString();
                 }
                 new_string += character.ToString();

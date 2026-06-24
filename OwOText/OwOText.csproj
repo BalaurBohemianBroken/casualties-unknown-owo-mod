@@ -30,4 +30,8 @@
       </Reference>
     </ItemGroup>
 
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+      <Exec Command="cp &quot;/mnt/NASPrivate/Work/Programming/CasualtiesUnknown/OwO text/OwOText/bin/Debug/netstandard2.1/OwOText.dll&quot; &quot;/home/will/.local/share/Steam/steamapps/common/Casualties Unknown Demo/BepInEx/plugins/OwOText.dll&quot;" />
+    </Target>
+
 </Project>
