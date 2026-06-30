@@ -8,7 +8,7 @@ using BepInEx.Logging;
 using UnityEngine;
 
 namespace OwOText {
-    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.5")]
+    [BepInPlugin("com.balaur.OwO", "OwOText", "1.0.6")]
     public class OwOText : BaseUnityPlugin {
         public static int seed = new Random().Next(1000);
 
@@ -31,8 +31,28 @@ namespace OwOText {
         public static bool apply_tooltips = false;
         public static bool apply_other = false;
         public static bool apply_pause = false;
-        public static string[] faces =
-            { ":<", ":>", "c:", ":c", "umu", ">//>", "x3", ">v>", "UvU", ":3", ":3c", ":P", ":p", "-w-", "=w=", ";w;", ">w>", "<w<", "<//<", "<v<" };
+        public static string[] faces = {
+            ":<", 
+            ":>", 
+            "c:", 
+            ":c", 
+            "umu", 
+            ">//>", 
+            "x3", 
+            ">v>", 
+            "UvU", 
+            ":3", 
+            ":3c", 
+            ":P", 
+            ":p", 
+            "-w-", 
+            "=w=", 
+            ";w;", 
+            ">w>", 
+            "<w<", 
+            "<//<", 
+            "<v<"
+        };
         
         public static HashSet<string> modified_strings_this_frame = new HashSet<string>();
         public static ManualLogSource logger;
@@ -69,8 +89,23 @@ namespace OwOText {
             // This provides a consistent result. The same string and seed will always produce the same result.
             Random rng = new Random(input.GetHashCode() + seed);
             string this_loop = "";
+            int open_tags = 0;
             for (int i = 0; i < len; i++) {
                 char c = input[i];
+                if (c == '<') {
+                    open_tags++;
+                    continue;
+                }
+
+                if (open_tags > 0) {
+                    if (c == '>') {
+                        open_tags--;
+                    }
+                }
+
+                if (open_tags > 0) {
+                    continue;
+                }
 
                 this_loop += Lisp(c, rng);
                 c = this_loop != "" ? this_loop[^1] : c;
@@ -258,6 +293,8 @@ namespace OwOText {
             }
             
             // Place after punctuation
+            if (index == 0)
+                return "";
             char last_char = source[index - 1];
             if (character == ' ' && ".!?".IndexOf(last_char) != -1) {
                 return $" {face} ";
